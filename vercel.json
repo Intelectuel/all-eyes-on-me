@@ -1,11 +1,11 @@
 {
   "crons": [
     {
-      "path": "/api/bot/run?secret=REPLACE_WITH_BOT_SECRET",
+      "path": "/api/cron/bot",
       "schedule": "0 */2 * * *"
     },
     {
-      "path": "/api/bot/run?secret=REPLACE_WITH_BOT_SECRET&mode=trends_only",
+      "path": "/api/cron/bot?mode=trends_only",
       "schedule": "0 * * * *"
     }
   ]
