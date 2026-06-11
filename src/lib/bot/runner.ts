@@ -24,7 +24,7 @@ export async function runBotCycle(options?: {
   maxMarkets?: number
   immediateAlert?: boolean
 }): Promise<BotRunStats> {
-  const minScore = options?.minViralityScore ?? 55
+  const minScore = options?.minViralityScore ?? 30
   const maxMarkets = options?.maxMarkets ?? 20
   const stats: BotRunStats = {
     sourcesChecked: 0,

@@ -4,7 +4,7 @@ import { ViralityBreakdown } from './types'
 export function calculateViralityScore(figure: AggregatedFigure): ViralityBreakdown {
   // 1. Sources count — how many different sources mention them (max 30)
   const uniqueSources = figure.sources.size
-  const sourcesCount = Math.min(30, Math.round((uniqueSources / 10) * 30))
+  const sourcesCount = Math.min(30, Math.round((uniqueSources / 4) * 30))
 
   // 2. Velocity — mention growth rate last 2h vs previous 2h (max 25)
   const velocityRatio = calculateVelocity(figure.mentions)
@@ -50,7 +50,7 @@ export function calculateViralityScore(figure: AggregatedFigure): ViralityBreakd
 
 export function rankFigures(
   figures: Map<string, AggregatedFigure>,
-  minScore = 55
+  minScore = 30
 ): Array<{ figure: AggregatedFigure; breakdown: ViralityBreakdown }> {
   const ranked: Array<{ figure: AggregatedFigure; breakdown: ViralityBreakdown }> = []
 
