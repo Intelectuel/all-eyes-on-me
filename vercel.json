@@ -2,11 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/bot",
-      "schedule": "0 */2 * * *"
-    },
-    {
-      "path": "/api/cron/bot?mode=trends_only",
-      "schedule": "0 * * * *"
+      "schedule": "0 9 * * *"
     }
   ]
 }
