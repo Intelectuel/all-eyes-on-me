@@ -5,15 +5,19 @@ export const metadata = { title: 'Admin — All Eyes On Me' }
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+  console.log('[admin] getUser:', user?.id ?? 'null', 'error:', userError?.message ?? 'none')
 
   if (!user) redirect('/auth/login')
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('is_admin')
     .eq('id', user.id)
     .single()
+
+  console.log('[admin] profile:', JSON.stringify(profile), 'error:', profileError?.message ?? 'none')
 
   if (!profile?.is_admin) redirect('/')
 
