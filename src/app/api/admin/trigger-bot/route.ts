@@ -17,6 +17,6 @@ export async function POST() {
 
   if (!profile?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const stats = await runBotCycle()
+  const stats = await runBotCycle({ maxMarkets: 5 })
   return NextResponse.json({ success: true, stats })
 }
