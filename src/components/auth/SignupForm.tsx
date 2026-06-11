@@ -31,6 +31,8 @@ export default function SignupForm() {
     setLoading(true)
 
     const supabase = createClient()
+    console.log('[Signup] SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+    console.log('[Signup] ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.slice(0, 40) + '…')
     const { error } = await supabase.auth.signUp({
       email,
       password,
