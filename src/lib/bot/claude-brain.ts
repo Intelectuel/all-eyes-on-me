@@ -188,9 +188,9 @@ JSON format:
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
-      thinking: { type: 'adaptive' },
       messages: [
-        { role: 'user', content: systemPrompt + '\n\n' + userPrompt },
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
       ],
     })
 
