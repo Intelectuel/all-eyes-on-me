@@ -1,8 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import AdminModQueue from './components/AdminModQueue'
-import AdminBotRuns from './components/AdminBotRuns'
-import AdminTrending from './components/AdminTrending'
-import AdminBlacklist from './components/AdminBlacklist'
+import TriggerBotButton from './components/TriggerBotButton'
 
 export const revalidate = 0
 
@@ -10,178 +7,131 @@ export default async function AdminPage() {
   const supabase = createClient()
 
   const [
-    { data: pendingQueue, count: queueCount },
-    { data: botRuns },
-    { data: trendingMarkets },
-    { data: reportedMarkets },
-    { data: recentFigures },
+    { data: lastRun },
+    { data: recentMarkets },
   ] = await Promise.all([
-    supabase
-      .from('moderation_queue')
-      .select('*, market:markets(title, virality_score, breaking_news, auto_generated)', { count: 'exact' })
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
-      .limit(20),
-
     supabase
       .from('bot_runs')
       .select('*')
       .order('started_at', { ascending: false })
-      .limit(10),
+      .limit(1)
+      .maybeSingle(),
 
     supabase
       .from('markets')
-      .select('id, title, virality_score, yes_pool, no_pool, created_at, breaking_news, suspended, report_count')
-      .eq('auto_generated', true)
-      .eq('suspended', false)
-      .order('virality_score', { ascending: false })
-      .limit(20),
-
-    supabase
-      .from('markets')
-      .select('id, title, report_count, suspended')
-      .gt('report_count', 0)
-      .order('report_count', { ascending: false })
+      .select('id, title, category, created_at, auto_generated, virality_score, breaking_news, yes_pool, no_pool, creator:profiles(username)')
+      .order('created_at', { ascending: false })
       .limit(10),
-
-    supabase
-      .from('public_figures')
-      .select('id, name, category, virality_score, last_trending_at, trend_count_24h')
-      .order('virality_score', { ascending: false })
-      .limit(20),
   ])
 
-  // Stats
-  const { count: totalMarkets } = await supabase
-    .from('markets')
-    .select('id', { count: 'exact', head: true })
-    .eq('auto_generated', true)
-
-  const { count: totalFigures } = await supabase
-    .from('public_figures')
-    .select('id', { count: 'exact', head: true })
-
-  const { count: suspendedCount } = await supabase
-    .from('markets')
-    .select('id', { count: 'exact', head: true })
-    .eq('suspended', true)
-
-  const lastRun = botRuns?.[0]
-
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 max-w-3xl">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Dashboard Admin</h1>
-        <TriggerBotButton />
+        <h1 className="text-xl font-bold text-white">Admin</h1>
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard label="Marchés auto-générés" value={totalMarkets ?? 0} color="violet" />
-        <StatCard label="Personnalités publiques" value={totalFigures ?? 0} color="blue" />
-        <StatCard label="File de modération" value={queueCount ?? 0} color="amber" />
-        <StatCard label="Marchés suspendus" value={suspendedCount ?? 0} color="red" />
-      </div>
-
-      {/* Last bot run */}
-      {lastRun && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
-          <p className="text-xs text-zinc-500 mb-2">Dernier run du bot</p>
-          <div className="flex flex-wrap gap-4 text-sm">
-            <span className={`font-medium ${lastRun.status === 'completed' ? 'text-green-400' : lastRun.status === 'failed' ? 'text-red-400' : 'text-amber-400'}`}>
-              {lastRun.status === 'completed' ? '✅' : lastRun.status === 'failed' ? '❌' : '⏳'} {lastRun.status}
-            </span>
-            <span className="text-zinc-400">{new Date(lastRun.started_at).toLocaleString('fr-FR')}</span>
-            <span className="text-zinc-400">{lastRun.sources_checked} sources</span>
-            <span className="text-zinc-400">{lastRun.figures_detected} personnalités</span>
-            <span className="text-green-400">+{lastRun.markets_published} publiés</span>
-            <span className="text-amber-400">{lastRun.markets_queued} en attente</span>
-            <span className="text-red-400">{lastRun.markets_rejected} rejetés</span>
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Moderation queue */}
-        <AdminModQueue items={pendingQueue ?? []} />
-
-        {/* Trending figures */}
-        <AdminTrending figures={recentFigures ?? []} />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Trending markets */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
-          <h2 className="font-semibold text-white mb-4">🔥 Top marchés viraux</h2>
-          <div className="flex flex-col gap-2">
-            {(trendingMarkets ?? []).map(m => (
-              <a key={m.id} href={`/markets/${m.id}`} className="flex items-center justify-between gap-2 rounded-lg bg-zinc-800/60 px-3 py-2 hover:bg-zinc-800 transition-colors">
-                <span className="text-xs text-zinc-300 line-clamp-1 flex-1">{m.title}</span>
-                <div className="flex items-center gap-2 shrink-0">
-                  {m.breaking_news && <span className="text-xs text-red-400 font-bold">BREAKING</span>}
-                  {m.suspended && <span className="text-xs text-red-500">SUSPENDU</span>}
-                  <span className="text-xs font-bold text-violet-400">{m.virality_score}</span>
-                </div>
-              </a>
-            ))}
-          </div>
-        </div>
-
-        {/* Reported markets */}
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
-          <h2 className="font-semibold text-white mb-4">⚠️ Marchés signalés</h2>
-          <div className="flex flex-col gap-2">
-            {(reportedMarkets ?? []).map(m => (
-              <div key={m.id} className="flex items-center justify-between gap-2 rounded-lg bg-zinc-800/60 px-3 py-2">
-                <a href={`/markets/${m.id}`} className="text-xs text-zinc-300 line-clamp-1 flex-1 hover:text-white">{m.title}</a>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className={`text-xs font-bold ${m.report_count >= 5 ? 'text-red-400' : 'text-amber-400'}`}>
-                    {m.report_count} signalements
-                  </span>
-                  {m.suspended && <span className="text-xs bg-red-900/60 text-red-300 px-1.5 py-0.5 rounded">SUSPENDU</span>}
-                </div>
+      {/* Bot status + trigger */}
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 flex flex-col gap-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <p className="text-sm font-semibold text-white">Bot status</p>
+            {lastRun ? (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-400">
+                <span className={
+                  lastRun.status === 'completed' ? 'text-green-400 font-medium'
+                  : lastRun.status === 'failed' ? 'text-red-400 font-medium'
+                  : 'text-amber-400 font-medium'
+                }>
+                  {lastRun.status === 'completed' ? '● Completed'
+                    : lastRun.status === 'failed' ? '● Failed'
+                    : '● Running'}
+                </span>
+                <span>
+                  {new Date(lastRun.started_at).toLocaleString('fr-FR', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit',
+                  })}
+                </span>
+                <span>{lastRun.sources_checked} sources checked</span>
+                <span>{lastRun.figures_detected} figures detected</span>
               </div>
-            ))}
-            {(reportedMarkets ?? []).length === 0 && (
-              <p className="text-xs text-zinc-600">Aucun signalement</p>
+            ) : (
+              <p className="text-xs text-zinc-500">No runs yet</p>
             )}
           </div>
+          <TriggerBotButton />
         </div>
+
+        {lastRun && (
+          <div className="grid grid-cols-3 gap-3 pt-1 border-t border-zinc-800">
+            <div className="text-center">
+              <p className="text-lg font-bold text-green-400">{lastRun.markets_published}</p>
+              <p className="text-[10px] text-zinc-500 mt-0.5">Published</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-amber-400">{lastRun.markets_queued}</p>
+              <p className="text-[10px] text-zinc-500 mt-0.5">Queued</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-red-400">{lastRun.markets_rejected}</p>
+              <p className="text-[10px] text-zinc-500 mt-0.5">Rejected</p>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Bot run history */}
-      <AdminBotRuns runs={botRuns ?? []} />
-
-      {/* Blacklist */}
-      <AdminBlacklist />
+      {/* Last 10 markets */}
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
+        <h2 className="text-sm font-semibold text-white mb-4">Last 10 markets created</h2>
+        <div className="flex flex-col divide-y divide-zinc-800">
+          {(recentMarkets ?? []).map(m => {
+            const total = m.yes_pool + m.no_pool
+            const yesProb = total > 0 ? Math.round((m.yes_pool / total) * 100) : 50
+            return (
+              <div key={m.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                <div className="flex-1 min-w-0">
+                  <a
+                    href={`/markets/${m.id}`}
+                    className="text-sm text-zinc-200 hover:text-white line-clamp-1 transition-colors"
+                  >
+                    {m.title}
+                  </a>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] text-zinc-500">
+                      {new Date(m.created_at).toLocaleString('fr-FR', {
+                        day: '2-digit', month: '2-digit',
+                        hour: '2-digit', minute: '2-digit',
+                      })}
+                    </span>
+                    <span className="text-[10px] text-zinc-600">·</span>
+                    <span className="text-[10px] text-zinc-500">
+                      {m.auto_generated
+                        ? '🤖 bot'
+                        : `@${(m.creator as unknown as { username: string } | null)?.username ?? '?'}`}
+                    </span>
+                    <span className="text-[10px] text-zinc-600">·</span>
+                    <span className="text-[10px] text-zinc-500">{m.category}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {m.breaking_news && (
+                    <span className="text-[10px] font-bold text-red-400">BREAKING</span>
+                  )}
+                  {m.auto_generated && (m.virality_score ?? 0) > 0 && (
+                    <span className="text-[10px] font-bold text-orange-400">
+                      🔥 {m.virality_score}
+                    </span>
+                  )}
+                  <span className="text-xs text-zinc-400 w-10 text-right">{yesProb}%</span>
+                </div>
+              </div>
+            )
+          })}
+          {(recentMarkets ?? []).length === 0 && (
+            <p className="text-xs text-zinc-600 py-2">No markets yet</p>
+          )}
+        </div>
+      </div>
     </div>
-  )
-}
-
-function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
-  const colors: Record<string, string> = {
-    violet: 'border-violet-800/60 bg-violet-950/20 text-violet-300',
-    blue: 'border-blue-800/60 bg-blue-950/20 text-blue-300',
-    amber: 'border-amber-800/60 bg-amber-950/20 text-amber-300',
-    red: 'border-red-800/60 bg-red-950/20 text-red-300',
-  }
-  return (
-    <div className={`rounded-xl border p-4 ${colors[color]}`}>
-      <p className="text-2xl font-bold">{value.toLocaleString('fr-FR')}</p>
-      <p className="text-xs mt-1 opacity-70">{label}</p>
-    </div>
-  )
-}
-
-function TriggerBotButton() {
-  return (
-    <form action="/api/admin/trigger-bot" method="POST">
-      <button
-        type="submit"
-        className="rounded-lg border border-violet-700 bg-violet-950/60 px-4 py-2 text-sm font-medium text-violet-300 hover:bg-violet-900/60 transition-colors"
-      >
-        ▶ Lancer le bot
-      </button>
-    </form>
   )
 }
