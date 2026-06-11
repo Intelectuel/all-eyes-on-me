@@ -44,7 +44,8 @@ Respond with ONLY the category string, nothing else.`
 
     const text = response.content[0].type === 'text' ? response.content[0].text.trim() : 'other'
     return (text as PersonCategory) || 'other'
-  } catch {
+  } catch (err) {
+    console.error('[Bot] detectPersonCategory error:', String(err))
     return 'other'
   }
 }
@@ -131,8 +132,8 @@ Respond in valid JSON only:
       blockedReasons: result.blocked_reasons || [],
       routing,
     }
-  } catch {
-    // On error, route to human review
+  } catch (err) {
+    console.error('[Bot] checkSafety error:', String(err))
     return {
       safe: true,
       confidence: 70,
@@ -218,7 +219,8 @@ JSON format:
     if (resolveDate > maxDate) market.resolution_date = maxDate.toISOString().split('T')[0]
 
     return market
-  } catch {
+  } catch (err) {
+    console.error('[Bot] generateMarket error:', String(err))
     return null
   }
 }
