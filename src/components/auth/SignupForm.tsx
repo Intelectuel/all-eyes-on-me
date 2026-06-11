@@ -30,23 +30,27 @@ export default function SignupForm() {
     setErrors({})
     setLoading(true)
 
-    const supabase = createClient()
-    console.log('[Signup] SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
-    console.log('[Signup] ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.slice(0, 40) + '…')
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { username } },
-    })
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { username } },
+      })
 
-    if (error) {
-      setErrors({ form: error.message })
+      if (error) {
+        setErrors({ form: error.message })
+        setLoading(false)
+        return
+      }
+
+      router.push('/dashboard')
+      router.refresh()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to connect. Please try again.'
+      setErrors({ form: message })
       setLoading(false)
-      return
     }
-
-    router.push('/dashboard')
-    router.refresh()
   }
 
   return (
